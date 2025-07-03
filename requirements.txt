@@ -1,0 +1,8 @@
+mutagen
+pyotp
+packaging
+pyside6
+httpx
+urllib3
+charset_normalizer
+requests

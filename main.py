@@ -1,24 +1,48 @@
-import sys
-import os
-from dataclasses import dataclass
-from datetime import datetime
-import requests
-import re
-from packaging import version
+try:
+    import sys
+    import os
+    from dataclasses import dataclass
+    from datetime import datetime
+    import re
+    import httpx
+    from packaging import version
 
-from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
-    QLabel, QFileDialog, QListWidget, QTextEdit, QTabWidget, QButtonGroup, QRadioButton,
-    QAbstractItemView, QSpacerItem, QSizePolicy, QProgressBar, QCheckBox, QDialog,
-    QDialogButtonBox, QComboBox, QStyledItemDelegate
-)
-from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl, QTimer, QTime, QSettings, QSize
-from PyQt6.QtGui import QIcon, QTextCursor, QDesktopServices, QPixmap, QBrush
-from PyQt6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
+    from PySide6.QtWidgets import (
+        QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLineEdit,
+        QLabel, QFileDialog, QListWidget, QTextEdit, QTabWidget, QButtonGroup, QRadioButton,
+        QAbstractItemView, QSpacerItem, QSizePolicy, QProgressBar, QCheckBox, QDialog,
+        QDialogButtonBox, QComboBox, QStyledItemDelegate
+    )
+    from PySide6.QtCore import Qt, QThread, Signal, QUrl, QTimer, QTime, QSettings, QSize
+    from PySide6.QtGui import QIcon, QTextCursor, QDesktopServices, QPixmap, QBrush
+    from PySide6.QtNetwork import QNetworkAccessManager, QNetworkRequest, QNetworkReply
 
-from getMetadata import get_filtered_data, parse_uri, SpotifyInvalidUrlException
-from qobuzDL import QobuzDownloader
-from tidalDL import TidalDownloader
+    from getMetadata import get_filtered_data, parse_uri, SpotifyInvalidUrlException
+    from qobuzDL import QobuzDownloader
+    from tidalDL import TidalDownloader
+
+except Exception as e:
+    from PySide6.QtWidgets import QWidget, QMessageBox, QApplication
+
+    class app_lol(QWidget):
+        def __init__(self):
+            super().__init__()
+            self.message_box = QMessageBox(self)
+            self.message_box.setText(str(e))
+            self.message_box.exec()
+
+
+    app = QApplication()
+    w = app_lol()
+    w.show()
+    app.exec()
+
+
+
+
+
+
+
 
 @dataclass
 class Track:
@@ -32,8 +56,8 @@ class Track:
     isrc: str = ""
 
 class MetadataFetchWorker(QThread):
-    finished = pyqtSignal(dict)
-    error = pyqtSignal(str)
+    finished = Signal(dict)
+    error = Signal(str)
     
     def __init__(self, url):
         super().__init__()
@@ -52,8 +76,8 @@ class MetadataFetchWorker(QThread):
             self.error.emit(f'Failed to fetch metadata: {str(e)}')
 
 class DownloadWorker(QThread):
-    finished = pyqtSignal(bool, str, list)
-    progress = pyqtSignal(str, int)
+    finished = Signal(bool, str, list)
+    progress = Signal(str, int)
     def __init__(self, tracks, outpath, is_single_track=False, is_album=False, is_playlist=False,
                  album_or_playlist_name='', filename_format='title_artist', use_track_numbers=True,
                  use_album_subfolders=False, service="tidal", qobuz_region="us"):
@@ -306,12 +330,12 @@ class UpdateDialog(QDialog):
 
 
 class TidalStatusChecker(QThread):
-    status_updated = pyqtSignal(bool)
-    error = pyqtSignal(str)
+    status_updated = Signal(bool)
+    error = Signal(str)
 
     def run(self):
         try:
-            response = requests.get("https://hifi.401658.xyz", timeout=5)
+            response = httpx.get("https://hifi.401658.xyz", timeout=5)
             is_online = response.status_code == 200 or response.status_code == 429
             self.status_updated.emit(is_online)
         except Exception as e:
@@ -319,8 +343,8 @@ class TidalStatusChecker(QThread):
             self.status_updated.emit(False)
 
 class QobuzStatusChecker(QThread):
-    status_updated = pyqtSignal(bool)
-    error = pyqtSignal(str)
+    status_updated = Signal(bool)
+    error = Signal(str)
     
     def __init__(self, region="us"):
         super().__init__()
@@ -328,7 +352,7 @@ class QobuzStatusChecker(QThread):
     
     def run(self):
         try:
-            response = requests.get(f"https://{self.region}.qobuz.squid.wtf", timeout=5)
+            response = httpx.get(f"https://{self.region}.qobuz.squid.wtf", timeout=5)
             self.status_updated.emit(response.status_code == 200)
         except Exception as e:
             self.error.emit(f"Error checking Qobuz status: {str(e)}")
@@ -430,7 +454,7 @@ class ServiceComboBox(QComboBox):
         self.update()
 
 class QobuzRegionComboBox(QComboBox):
-    status_updated = pyqtSignal(str, bool)
+    status_updated = Signal(str, bool)
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -532,7 +556,7 @@ class SpotiFLACGUI(QWidget):
 
     def check_updates(self):
         try:
-            response = requests.get("https://raw.githubusercontent.com/afkarxyz/SpotiFLAC/refs/heads/main/version.json")
+            response = httpx.get("https://raw.githubusercontent.com/afkarxyz/SpotiFLAC/refs/heads/main/version.json")
             if response.status_code == 200:
                 data = response.json()
                 new_version = data.get("version")
@@ -1421,6 +1445,7 @@ if __name__ == '__main__':
         print(f"Warning: Could not set UTF-8 encoding: {e}")
         
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")
     ex = SpotiFLACGUI()
     ex.show()
     sys.exit(app.exec())

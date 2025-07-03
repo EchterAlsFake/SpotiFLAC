@@ -47,7 +47,7 @@ class TidalDownloader:
         sanitized = re.sub(r'[\\/*?:"<>|]', "", str(filename))
         return re.sub(r'\s+', ' ', sanitized).strip() or "Unnamed Track"
 
-    async def get_access_token(self):
+    def get_access_token(self):
         if self.access_token:
             return self.access_token
             
@@ -58,37 +58,32 @@ class TidalDownloader:
             "grant_type": "client_credentials",
         }
         
-        async with httpx.AsyncClient(http2=True) as client:
+
+        response = httpx.post(
+            url=refresh_url,
+            data=payload,
+            auth=(self.client_id, self.client_secret),
+        )
+        if response.status_code == 200:
+            token_data = response.json()
+            new_token = token_data.get("access_token")
+
             try:
-                response = await client.post(
-                    url=refresh_url,
-                    data=payload,
-                    auth=(self.client_id, self.client_secret),
-                )
-                
-                if response.status_code == 200:
-                    token_data = response.json()
-                    new_token = token_data.get("access_token")
-                    
-                    try:
-                        with open(self.token_path, "w") as f:
-                            json.dump({
-                                "access_token": new_token
-                            }, f)
-                    except:
-                        pass
-                    
-                    self.access_token = new_token
-                    return new_token
-                else:
-                    return None
-                    
+                with open(self.token_path, "w") as f:
+                    json.dump({
+                        "access_token": new_token
+                    }, f)
             except:
-                return None
+                pass
+
+            self.access_token = new_token
+            return new_token
+        else:
+            return None
 
     async def search_tracks(self, query):
         try:
-            tidal_token = await self.get_access_token()
+            tidal_token = self.get_access_token()
             if not tidal_token:
                 raise Exception("Failed to get access token")
 

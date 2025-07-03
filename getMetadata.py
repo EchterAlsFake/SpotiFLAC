@@ -1,10 +1,10 @@
 from time import sleep
 from urllib.parse import urlparse, parse_qs
-import requests
 import json
 import time
 import pyotp
 import base64
+import requests
 from random import randrange
 from typing import Dict, Any, List, Tuple
 

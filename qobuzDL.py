@@ -68,10 +68,8 @@ class QobuzDownloader:
             print(f"Found: {title} ({bit_depth}b)")
             return selected_track
             
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Request error: {e}")
         except Exception as e:
-            raise Exception(f"Error: {e}")
+            raise Exception(f"Request error: {e}")
 
     def get_download_url(self, track_id):
         print("Fetching URL...")
@@ -90,9 +88,7 @@ class QobuzDownloader:
             else:
                 error_msg = data.get('error', {}).get('message', 'Unknown API error')
                 raise Exception(f"API error: {error_msg}")
-                
-        except requests.exceptions.RequestException as e:
-            raise Exception(f"Request error: {e}")
+
         except Exception as e:
             raise Exception(f"Error: {e}")
 
@@ -166,13 +162,9 @@ class QobuzDownloader:
                         
             os.rename(temp_filename, output_filename)
             print("Download complete")
-            
-        except requests.exceptions.RequestException as e:
-            if os.path.exists(temp_filename): 
-                os.remove(temp_filename)
-            raise Exception(f"Download failed: {e}")
+
         except Exception as e:
-            if os.path.exists(temp_filename): 
+            if os.path.exists(temp_filename):
                 os.remove(temp_filename)
             raise Exception(f"File error: {e}")
             
